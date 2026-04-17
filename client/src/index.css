@@ -1,0 +1,94 @@
+@import "tailwindcss";
+
+@theme {
+  /* Core Academic Architect Palette */
+  --color-primary: #0052CC;
+  --color-primary-container: #003D9B;
+  --color-secondary: #4C5D8D;
+  --color-surface: #F8F9FA;
+  --color-surface-container: #EDEEEF;
+  --color-surface-container-low: #F3F4F5;
+  --color-surface-container-lowest: #FFFFFF;
+  --color-on-surface: #191C1D;
+  --color-on-surface-variant: #434654;
+  --color-outline-variant: rgba(195, 198, 214, 0.15); /* Ghost Border */
+  
+  --font-inter: "Inter", sans-serif;
+  
+  /* Architectural Elevation */
+  --shadow-ambient: 0 8px 24px rgba(0, 24, 72, 0.06);
+  --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.03);
+  
+  /* Corner Rounding */
+  --radius-xl: 24px;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-inter);
+    color: var(--color-on-surface);
+    -webkit-font-smoothing: antialiased;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-surface;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold tracking-tight;
+    color: var(--color-on-surface);
+  }
+}
+
+@layer components {
+  .container-custom {
+    @apply mx-auto px-8 max-w-[1280px] w-full;
+  }
+
+  /* Glassmorphism Utility */
+  .glass {
+    @apply bg-white/85 backdrop-blur-xl border-b border-white/20;
+  }
+
+  /* Premium Buttons */
+  .btn-primary {
+    @apply px-8 py-3 rounded-xl font-bold transition-all active:scale-[0.98] inline-flex items-center justify-center;
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-container) 100%);
+    @apply text-white shadow-ambient;
+  }
+
+  .btn-secondary {
+    @apply px-8 py-3 rounded-xl font-bold transition-all border border-outline-variant text-on-surface hover:bg-surface-container inline-flex items-center justify-center;
+  }
+
+  .btn-text {
+    @apply px-4 py-2 font-bold text-on-surface hover:text-primary transition-colors inline-flex items-center justify-center;
+  }
+
+  /* Architectural Cards */
+  .card-premium {
+    @apply bg-surface-container-lowest rounded-xl p-8 transition-all shadow-card hover:shadow-ambient;
+    @apply border border-transparent hover:border-outline-variant;
+  }
+
+  .section-spacing {
+    @apply py-24;
+  }
+}
+
+/* Custom Scrollbar - Refined */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-surface-container;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-secondary/20 rounded-full;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-secondary/40;
+}
