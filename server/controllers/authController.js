@@ -55,9 +55,10 @@ exports.register = async (req, res) => {
  * @route   POST /api/auth/login
  */
 exports.login = async (req, res) => {
+  
   try {
     const { email, password } = req.body;
-
+console.log(email, password )
     if (!email || !password) {
       return res.status(400).json({ message: 'Please provide email and password' });
     }

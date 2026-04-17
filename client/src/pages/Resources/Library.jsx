@@ -24,6 +24,7 @@ const Library = () => {
   const fetchResources = async () => {
     try {
       const res = await api.get(`/resources?category=${filter !== 'All' ? filter : ''}&search=${search}`);
+      console.log(res)
       setResources(res.data);
     } catch (err) {
       console.error('Error fetching resources:', err);
