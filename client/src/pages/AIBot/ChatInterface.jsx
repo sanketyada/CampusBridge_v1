@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../services/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, User, Bot, Sparkles, Zap, Brain, MessageSquare, Loader2, ChevronDown } from 'lucide-react';
 
@@ -37,10 +37,8 @@ const ChatInterface = () => {
     setLoading(true);
 
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.post(`http://localhost:5000/api/chat/${provider}`, 
-        { prompt: input, persona },
-        { headers: { Authorization: `Bearer ${token}` } }
+      const res = await api.post(`/chat/${provider}`, 
+        { prompt: input, persona }
       );
 
       setMessages(prev => [...prev, { role: 'bot', content: res.data.response }]);

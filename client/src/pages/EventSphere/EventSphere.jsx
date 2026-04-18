@@ -20,7 +20,6 @@ import {
   ArrowUpRight,
   Globe
 } from 'lucide-react';
-import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
@@ -103,7 +102,7 @@ const EventSphere = () => {
 
   const fetchEvents = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/events');
+      const res = await api.get('/events');
       setEvents(res.data.data.events);
     } catch (err) {
       console.error('Error fetching events:', err);

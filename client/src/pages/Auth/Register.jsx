@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, User as UserIcon, Loader2, ArrowRight, UserCheck, School, Building } from 'lucide-react';
-import axios from 'axios';
+import api from '../../services/api';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 
@@ -28,7 +28,7 @@ const Register = () => {
     setError('');
     setLoading(true);
     try {
-      const res = await axios.post('http://localhost:5000/api/auth/register', formData);
+      const res = await api.post('/auth/register', formData);
       const { token } = res.data;
       const { user } = res.data.data;
       login(user, token);

@@ -14,6 +14,7 @@ const signToken = (id) => {
 exports.register = async (req, res) => {
   try {
     const { name, email, password, role, college, department } = req.body;
+    console.log(name, email, password, role, college, department)
 
     const userExists = await User.findOne({ email });
     if (userExists) {
@@ -58,6 +59,8 @@ exports.login = async (req, res) => {
   
   try {
     const { email, password } = req.body;
+    console.log(req.body)
+    console.log(email, password)
     if (!email || !password) {
       return res.status(400).json({ message: 'Please provide email and password' });
     }
@@ -85,6 +88,7 @@ exports.login = async (req, res) => {
       }
     });
   } catch (err) {
+    console.log(err.message)
     res.status(400).json({ status: 'fail', message: err.message });
   }
 };

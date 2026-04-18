@@ -1,8 +1,3 @@
-// Polyfills for PDF processing on Vercel
-global.DOMMatrix = global.DOMMatrix || class DOMMatrix { };
-global.Path2D = global.Path2D || class Path2D { };
-global.ImageData = global.ImageData || class ImageData { };
-
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -19,13 +14,6 @@ app.use(cors());
 app.use(express.json());
 app.use(morgan('dev'));
 
-app.get("/", (req, res) => {
-  res.json({
-    status: "success",
-    message: "CampusBridge API",
-
-  })
-})
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/events', require('./routes/events'));

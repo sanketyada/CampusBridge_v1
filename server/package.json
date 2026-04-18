@@ -29,7 +29,6 @@
     "multer": "^2.1.1",
     "multer-storage-cloudinary": "^4.0.0",
     "nodemon": "^3.1.14",
-    "pdf-parse": "^2.4.5",
-    "@napi-rs/canvas": "^0.1.80"
+    "pdf-parse": "^2.4.5"
   }
 }

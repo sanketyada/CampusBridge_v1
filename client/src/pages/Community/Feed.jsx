@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../services/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquare, Heart, Share2, Send, Plus, Users, Award, TrendingUp, Loader2 } from 'lucide-react';
 
@@ -11,7 +11,7 @@ const Feed = () => {
 
   const fetchPosts = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/feed');
+      const res = await api.get('/feed');
       setPosts(res.data);
     } catch (err) {
       console.error('Error fetching posts:', err);
@@ -30,11 +30,7 @@ const Feed = () => {
 
     setPosting(true);
     try {
-      const token = localStorage.getItem('token');
-      await axios.post('http://localhost:5000/api/feed', 
-        { content: newPost },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await api.post('/feed', { content: newPost });
       setNewPost('');
       fetchPosts();
     } catch (err) {
@@ -46,10 +42,7 @@ const Feed = () => {
 
   const handleLike = async (postId) => {
     try {
-      const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:5000/api/feed/${postId}/like`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await api.put(`/feed/${postId}/like`);
       fetchPosts();
     } catch (err) {
       console.error('Error liking post:', err);
