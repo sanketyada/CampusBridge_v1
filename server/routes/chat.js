@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { getGeminiResponse, getGroqResponse } = require('../services/aiService');
+const { getGeminiResponse } = require('../services/aiService');
+const { getLangChainChatResponse } = require('../services/langchainService');
 const { protect } = require('../middleware/auth');
 
 router.post('/gemini', protect, async (req, res) => {
@@ -16,9 +17,11 @@ router.post('/gemini', protect, async (req, res) => {
 router.post('/groq', protect, async (req, res) => {
   try {
     const { prompt, persona } = req.body;
-    const response = await getGroqResponse(prompt, persona);
+    // req.user.id is coming from protect middleware
+    const response = await getLangChainChatResponse(req.user.id, prompt, persona);
     res.json({ response });
   } catch (err) {
+    console.error("Chat Route Error:", err);
     res.status(500).json({ message: err.message });
   }
 });
