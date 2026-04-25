@@ -115,12 +115,15 @@ const chatWithResourceController = async (req, res) => {
       return res.status(400).json({ message: "This resource does not support AI chat (no text content or image found)." });
     }
 
-    // Pass the image URL if it's an image, along with text if available
-    const aiResponse = await chatWithResource(
-      resource.contentText, 
-      message, 
-      isImage ? resource.fileUrl : null
-    );
+    // Use the new LangChain service for stateful chat
+    const { getLangChainChatResponse } = require('../services/langchainService');
+    const aiResponse = await getLangChainChatResponse({
+      userId: req.user._id,
+      resourceId: resource._id,
+      userMessage: message,
+      resourceContext: resource.contentText,
+      imageUrl: isImage ? resource.fileUrl : null
+    });
 
     res.json({ response: aiResponse });
   } catch (err) {

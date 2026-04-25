@@ -16,6 +16,36 @@ import {
   Loader2
 } from 'lucide-react';
 import api from '../../services/api';
+import Markdown from 'react-markdown';
+import rehypeHighlight from 'rehype-highlight';
+import 'highlight.js/styles/github-dark.css';
+
+const MarkdownContent = ({ content, role }) => (
+  <div className={`markdown-content ${role === 'user' ? 'text-white' : 'text-on-surface'}`}>
+    <Markdown 
+      rehypePlugins={[rehypeHighlight]}
+      components={{
+        p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
+        ul: ({node, ...props}) => <ul className="list-disc ml-4 mb-2 space-y-1" {...props} />,
+        ol: ({node, ...props}) => <ol className="list-decimal ml-4 mb-2 space-y-1" {...props} />,
+        li: ({node, ...props}) => <li className="text-sm font-medium" {...props} />,
+        code: ({node, inline, ...props}) => (
+          inline 
+            ? <code className="bg-surface-variant/50 px-1 rounded text-xs" {...props} />
+            : <div className="rounded-lg overflow-hidden my-3 shadow-sm border border-outline-variant/30">
+                <code className="text-[13px] block p-4 font-mono leading-relaxed" {...props} />
+              </div>
+        ),
+        blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-primary/30 pl-4 italic my-2" {...props} />,
+        h1: ({node, ...props}) => <h1 className="text-lg font-black mb-2" {...props} />,
+        h2: ({node, ...props}) => <h2 className="text-base font-black mb-2" {...props} />,
+        h3: ({node, ...props}) => <h3 className="text-sm font-black mb-1" {...props} />,
+      }}
+    >
+      {content}
+    </Markdown>
+  </div>
+);
 
 const ResourceDetails = () => {
   const { id } = useParams();
@@ -207,9 +237,13 @@ const ResourceDetails = () => {
                 Analyzing document with Groq...
               </div>
             ) : (
-              <p className="text-on-surface text-sm leading-relaxed mb-4">
-                {resource.aiSummary || "This resource hasn't been analyzed yet. Use the button above to generate a summary and key insights."}
-              </p>
+              <div className="text-on-surface text-sm leading-relaxed mb-4">
+                {resource.aiSummary ? (
+                  <MarkdownContent content={resource.aiSummary} role="ai" />
+                ) : (
+                  "This resource hasn't been analyzed yet. Use the button above to generate a summary and key insights."
+                )}
+              </div>
             )}
           </motion.div>
 
@@ -261,9 +295,9 @@ const ResourceDetails = () => {
                   <div className={`max-w-[85%] p-3 rounded-2xl text-sm ${
                     chat.role === 'user' 
                       ? 'bg-primary text-white rounded-tr-none' 
-                      : 'bg-surface border border-outline-variant rounded-tl-none text-on-surface-variant'
+                      : 'bg-surface border border-outline-variant rounded-tl-none text-on-surface-variant shadow-sm'
                   }`}>
-                    {chat.content}
+                    <MarkdownContent content={chat.content} role={chat.role === 'user' ? 'user' : 'ai'} />
                   </div>
                 </div>
               ))}

@@ -23,6 +23,12 @@ const ChatHistorySchema = new mongoose.Schema({
     required: true,
     index: true
   },
+  resourceId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Resource',
+    required: false, // Optional, only for resource-specific chats
+    index: true
+  },
   sessionTitle: {
     type: String,
     default: 'New Chat'

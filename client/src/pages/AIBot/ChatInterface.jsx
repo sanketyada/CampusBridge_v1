@@ -2,6 +2,36 @@ import React, { useState, useRef, useEffect } from 'react';
 import api from '../../services/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, User, Bot, Sparkles, Zap, Brain, MessageSquare, Loader2, ChevronDown } from 'lucide-react';
+import Markdown from 'react-markdown';
+import rehypeHighlight from 'rehype-highlight';
+import 'highlight.js/styles/github-dark.css';
+
+const MarkdownContent = ({ content, role }) => (
+  <div className={`markdown-content ${role === 'user' ? 'text-white' : 'text-on-surface'}`}>
+    <Markdown 
+      rehypePlugins={[rehypeHighlight]}
+      components={{
+        p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
+        ul: ({node, ...props}) => <ul className="list-disc ml-4 mb-2 space-y-1" {...props} />,
+        ol: ({node, ...props}) => <ol className="list-decimal ml-4 mb-2 space-y-1" {...props} />,
+        li: ({node, ...props}) => <li className="text-sm font-medium" {...props} />,
+        code: ({node, inline, ...props}) => (
+          inline 
+            ? <code className="bg-surface-variant/50 px-1 rounded text-xs" {...props} />
+            : <div className="rounded-lg overflow-hidden my-3 shadow-sm border border-outline-variant/30">
+                <code className="text-[13px] block p-4 font-mono leading-relaxed" {...props} />
+              </div>
+        ),
+        blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-primary/30 pl-4 italic my-2" {...props} />,
+        h1: ({node, ...props}) => <h1 className="text-lg font-black mb-2" {...props} />,
+        h2: ({node, ...props}) => <h2 className="text-base font-black mb-2" {...props} />,
+        h3: ({node, ...props}) => <h3 className="text-sm font-black mb-1" {...props} />,
+      }}
+    >
+      {content}
+    </Markdown>
+  </div>
+);
 
 const ChatInterface = () => {
   const [messages, setMessages] = useState([
@@ -114,7 +144,7 @@ const ChatInterface = () => {
                   {m.role === 'user' ? <User size={18} /> : <Bot size={18} />}
                 </div>
                 <div className={`p-4 rounded-2xl text-sm font-medium leading-relaxed ${m.role === 'user' ? 'bg-primary text-white' : 'bg-white shadow-card border border-outline-variant text-on-surface'}`}>
-                  {m.content}
+                  <MarkdownContent content={m.content} role={m.role} />
                 </div>
               </div>
             </motion.div>

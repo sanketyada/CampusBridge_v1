@@ -18,7 +18,11 @@ router.post('/groq', protect, async (req, res) => {
   try {
     const { prompt, persona } = req.body;
     // req.user.id is coming from protect middleware
-    const response = await getLangChainChatResponse(req.user.id, prompt, persona);
+    const response = await getLangChainChatResponse({
+      userId: req.user.id,
+      userMessage: prompt,
+      personaType: persona
+    });
     res.json({ response });
   } catch (err) {
     console.error("Chat Route Error:", err);
