@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
+const axios = require('axios');
 
 const signToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -154,5 +155,75 @@ exports.uploadAvatar = async (req, res) => {
     });
   } catch (err) {
     res.status(400).json({ status: 'fail', message: err.message });
+  }
+};
+
+/**
+ * @desc    Google OAuth Login/Register
+ * @route   POST /api/auth/google
+ */
+exports.googleLogin = async (req, res) => {
+  try {
+    const { credential } = req.body;
+
+    if (!credential) {
+      return res.status(400).json({ message: 'Google credential token is required' });
+    }
+
+    // Verify Google token
+    const googleRes = await axios.get(
+      `https://oauth2.googleapis.com/tokeninfo?id_token=${credential}`
+    );
+
+    const { sub: googleId, email, name, picture } = googleRes.data;
+
+    if (!email) {
+      return res.status(400).json({ message: 'Unable to get email from Google account' });
+    }
+
+    // Check if user already exists
+    let user = await User.findOne({ email });
+
+    if (user) {
+      // Existing user — link Google ID if not already linked
+      if (!user.googleId) {
+        user.googleId = googleId;
+        user.authProvider = 'google';
+        if (picture && !user.avatar?.url) {
+          user.avatar = { url: picture, publicId: '' };
+        }
+        await user.save();
+      }
+    } else {
+      // New user — create account
+      user = await User.create({
+        name,
+        email,
+        googleId,
+        authProvider: 'google',
+        role: 'student',
+        avatar: { url: picture || '', publicId: '' }
+      });
+    }
+
+    const token = signToken(user._id);
+
+    res.status(200).json({
+      status: 'success',
+      token,
+      data: {
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          college: user.college,
+          department: user.department
+        }
+      }
+    });
+  } catch (err) {
+    console.error('Google Auth Error:', err.message);
+    res.status(400).json({ status: 'fail', message: 'Google authentication failed' });
   }
 };
