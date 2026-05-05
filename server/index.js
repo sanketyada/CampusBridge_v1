@@ -9,9 +9,6 @@ dotenv.config();
 
 const app = express();
 
-// Disable Mongoose buffering to avoid timeouts during connection issues
-mongoose.set('bufferCommands', false);
-
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -23,6 +20,31 @@ app.get("/",(req,res)=>{
     message:"Backend is Working!"
   })
 })
+// Database Connection logic
+let isConnected = false;
+const connectDB = async () => {
+  if (isConnected) return;
+  try {
+    console.log('[DB] Attempting to connect to MongoDB...');
+    await mongoose.connect(process.env.MONGODB_URI, {
+      serverSelectionTimeoutMS: 5000,
+    });
+    isConnected = true;
+    console.log('[DB] MongoDB Connected Successfully');
+    await seedAdmin();
+  } catch (err) {
+    console.error('[DB] Connection Error:', err.message);
+    const sanitizedUri = process.env.MONGODB_URI ? process.env.MONGODB_URI.split('@')[1] : 'MISSING';
+    console.log(`[DB] Using URI (sanitized): ...@${sanitizedUri}`);
+  }
+};
+
+// Database Connection Middleware (Runs for all routes)
+app.use(async (req, res, next) => {
+  await connectDB();
+  next();
+});
+
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/events', require('./routes/events'));
@@ -56,31 +78,6 @@ const seedAdmin = async () => {
   }
 };
 
-// Database Connection
-let isConnected = false;
-const connectDB = async () => {
-  if (isConnected) return;
-  try {
-    console.log('[DB] Attempting to connect to MongoDB...');
-    await mongoose.connect(process.env.MONGODB_URI, {
-      serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
-    });
-    isConnected = true;
-    console.log('[DB] MongoDB Connected Successfully');
-    await seedAdmin();
-  } catch (err) {
-    console.error('[DB] Connection Error:', err.message);
-    // Log the URI (sanitized) to check if it's being read correctly
-    const sanitizedUri = process.env.MONGODB_URI ? process.env.MONGODB_URI.split('@')[1] : 'MISSING';
-    console.log(`[DB] Using URI (sanitized): ...@${sanitizedUri}`);
-  }
-};
-
-// Middleware to ensure DB is connected
-app.use(async (req, res, next) => {
-  await connectDB();
-  next();
-});
 
 const PORT = process.env.PORT || 5000;
 
