@@ -105,3 +105,54 @@ exports.getMe = async (req, res) => {
     res.status(400).json({ status: 'fail', message: err.message });
   }
 };
+/**
+ * @desc    Update user profile
+ * @route   PATCH /api/auth/updateMe
+ */
+exports.updateMe = async (req, res) => {
+  try {
+    const { name, bio, college, department, year, skills, socialLinks } = req.body;
+    
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user.id,
+      { name, bio, college, department, year, skills, socialLinks },
+      { new: true, runValidators: true }
+    );
+
+    res.status(200).json({
+      status: 'success',
+      data: updatedUser
+    });
+  } catch (err) {
+    res.status(400).json({ status: 'fail', message: err.message });
+  }
+};
+/**
+ * @desc    Upload user avatar
+ * @route   POST /api/auth/upload-avatar
+ */
+exports.uploadAvatar = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ status: 'fail', message: 'No file uploaded' });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { 
+        avatar: { 
+          url: req.file.path,
+          publicId: req.file.filename
+        } 
+      },
+      { new: true }
+    );
+
+    res.status(200).json({
+      status: 'success',
+      data: user
+    });
+  } catch (err) {
+    res.status(400).json({ status: 'fail', message: err.message });
+  }
+};

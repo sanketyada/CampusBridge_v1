@@ -11,6 +11,9 @@ import Library from './pages/Resources/Library';
 import ResourceDetails from './pages/Resources/ResourceDetails';
 import Feed from './pages/Community/Feed';
 import Profile from './pages/Profile/Profile';
+import AdminLogin from './pages/Admin/AdminLogin';
+import AdminDashboard from './pages/Admin/AdminDashboard';
+import AdminRoute from './components/AdminRoute';
 
 function App() {
   return (
@@ -27,6 +30,17 @@ function App() {
           <Route path="/resources/:id" element={<ResourceDetails />} />
           <Route path="/community" element={<Feed />} />
           <Route path="/profile" element={<Profile />} />
+          
+          {/* Admin Routes */}
+          <Route path="/admin" element={<AdminLogin />} />
+          <Route 
+            path="/admin/dashboard" 
+            element={
+              <AdminRoute>
+                <AdminDashboard />
+              </AdminRoute>
+            } 
+          />
         </Route>
       </Routes>
     </Router>

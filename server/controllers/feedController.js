@@ -42,8 +42,31 @@ const likePost = async (req, res) => {
   }
 };
 
+const addComment = async (req, res) => {
+  try {
+    const { text } = req.body;
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ message: 'Post not found' });
+
+    post.comments.push({
+      author: req.user._id,
+      text
+    });
+
+    await post.save();
+    
+    // Populate the new comment's author
+    const updatedPost = await Post.findById(post._id).populate('author', 'name role').populate('comments.author', 'name role');
+    
+    res.json(updatedPost);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
 module.exports = {
   getPosts,
   createPost,
-  likePost
+  likePost,
+  addComment
 };

@@ -9,8 +9,12 @@ import {
   Users
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useAuth } from '../context/AuthContext';
+
 
 const Home = () => {
+  const { user } = useAuth();
+
   return (
     <div className="min-h-screen overflow-x-hidden">
 
@@ -22,7 +26,7 @@ const Home = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <p className="text-sm text-primary font-semibold mb-4">
+            <p className="text-base text-primary font-semibold mb-4">
               Career Ecosystem for Tier 2/3 Students
             </p>
 
@@ -31,19 +35,15 @@ const Home = () => {
               <span className="text-primary">Build real skills.</span>
             </h1>
 
-            <p className="text-on-surface-variant text-lg max-w-lg mb-10">
-              EventSphere bridges the awareness gap by combining event discovery,
-              structured roadmaps, AI mentorship, and a smart resource system —
-              all in one platform.
+            <p className="text-on-surface-variant text-xl leading-relaxed max-w-xl mb-10">
+              CampusBridge empowers students by combining community-driven learning, 
+              mentor-guided roadmaps, and an AI-powered resource system to bridge the 
+              gap between education and industry.
             </p>
 
             <div className="flex gap-4 flex-wrap">
-              <Link to="/register" className="btn-primary">
-                Get Started <ArrowRight size={18} className="ml-2" />
-              </Link>
-
-              <Link to="/events" className="btn-secondary">
-                Explore Events
+              <Link to={user ? "/community" : "/register"} className="btn-primary">
+                {user ? "Explore Platform" : "Get Started"} <ArrowRight size={18} className="ml-2" />
               </Link>
             </div>
           </motion.div>
@@ -68,10 +68,10 @@ const Home = () => {
       {/* PROBLEM STATEMENT */}
       <section className="py-16 bg-surface-container-low">
         <div className="container-custom text-center max-w-3xl">
-          <h2 className="text-3xl font-bold mb-4">
+          <h2 className="text-4xl font-bold mb-6">
             Most students miss opportunities
           </h2>
-          <p className="text-on-surface-variant">
+          <p className="text-on-surface-variant text-lg leading-relaxed">
             Hackathons, internships, and learning paths exist — but they are scattered.
             EventSphere centralizes everything so you never miss out again.
           </p>
@@ -82,11 +82,11 @@ const Home = () => {
       <section className="section-spacing">
         <div className="container-custom">
 
-          <div className="max-w-xl mb-16">
-            <h2 className="text-3xl font-bold mb-4">
+          <div className="max-w-2xl mb-16">
+            <h2 className="text-4xl font-bold mb-4">
               A complete growth system
             </h2>
-            <p className="text-on-surface-variant">
+            <p className="text-on-surface-variant text-lg">
               Each module is designed to solve a real student problem.
             </p>
           </div>
@@ -138,11 +138,11 @@ const Home = () => {
         <div className="container-custom grid lg:grid-cols-2 gap-12 items-center">
 
           <div>
-            <h2 className="text-3xl font-bold mb-6">
+            <h2 className="text-4xl font-bold mb-6">
               Built with AI-first architecture
             </h2>
 
-            <ul className="space-y-4 text-on-surface-variant">
+            <ul className="space-y-4 text-on-surface-variant text-lg">
               <li>• Multi-persona AI assistant (Beginner → Advanced)</li>
               <li>• RAG-based document querying system</li>
               <li>• Vector search for contextual answers</li>
@@ -151,14 +151,14 @@ const Home = () => {
           </div>
 
           <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-8">
-            <p className="text-sm text-on-surface-variant mb-2">
+            <p className="text-base text-on-surface-variant mb-2">
               Example Query
             </p>
             <p className="font-medium">
               "Explain this PDF in simple terms"
             </p>
 
-            <div className="mt-4 text-sm text-primary">
+            <div className="mt-4 text-base text-primary">
               → AI generates contextual answer using embeddings
             </div>
           </div>
@@ -170,16 +170,16 @@ const Home = () => {
       <section className="section-spacing">
         <div className="container-custom text-center">
 
-          <h2 className="text-3xl md:text-4xl font-bold mb-6">
+          <h2 className="text-4xl md:text-5xl font-bold mb-6">
             Start building your career today
           </h2>
 
-          <p className="text-on-surface-variant mb-8 max-w-xl mx-auto">
-            Join students who are actively learning, building, and growing with EventSphere.
+          <p className="text-on-surface-variant text-lg mb-8 max-w-xl mx-auto">
+            Join students who are actively learning, building, and growing with CampusBridge.
           </p>
 
-          <Link to="/register" className="btn-primary">
-            Join EventSphere <ArrowRight size={18} className="ml-2" />
+          <Link to={user ? "/community" : "/register"} className="btn-primary">
+            {user ? "Back to Hub" : "Join CampusBridge"} <ArrowRight size={18} className="ml-2" />
           </Link>
 
         </div>
@@ -193,10 +193,10 @@ const Home = () => {
 const Feature = ({ icon, title, desc, link }) => (
   <div className="card-premium">
     <div className="text-primary mb-4">{icon}</div>
-    <h3 className="text-lg font-semibold mb-2">{title}</h3>
-    <p className="text-sm text-on-surface-variant mb-6">{desc}</p>
-    <Link to={link} className="text-sm font-semibold text-primary flex items-center gap-1">
-      Learn more <ArrowRight size={16} />
+    <h3 className="text-xl font-bold mb-3">{title}</h3>
+    <p className="text-base text-on-surface-variant mb-8 leading-relaxed">{desc}</p>
+    <Link to={link} className="text-base font-bold text-primary flex items-center gap-1 mt-auto">
+      Learn more <ArrowRight size={18} />
     </Link>
   </div>
 );

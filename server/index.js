@@ -27,13 +27,37 @@ app.use('/api/roadmaps', require('./routes/roadmaps'));
 app.use('/api/resources', require('./routes/resources'));
 app.use('/api/feed', require('./routes/feed'));
 app.use('/api/chat', require('./routes/chat'));
+app.use('/api/admin', require('./routes/adminRoutes'));
+app.use('/api/community', require('./routes/community'));
 
 // Static folder for uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Database Connection
+// Database Connection & Admin Seed
+const User = require('./models/User');
+
+const seedAdmin = async () => {
+  try {
+    const adminExists = await User.findOne({ email: 'admin@campusbridge.com' });
+    if (!adminExists) {
+      await User.create({
+        name: 'Super Admin',
+        email: 'admin@campusbridge.com',
+        password: '12345678',
+        role: 'admin'
+      });
+      console.log('Admin user seeded successfully');
+    }
+  } catch (error) {
+    console.error('Error seeding admin:', error);
+  }
+};
+
 mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('MongoDB Connected'))
+  .then(() => {
+    console.log('MongoDB Connected');
+    seedAdmin();
+  })
   .catch(err => console.log('DB Error:', err));
 
 const PORT = process.env.PORT || 5000;

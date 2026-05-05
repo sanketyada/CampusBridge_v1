@@ -32,8 +32,22 @@ const avatarStorage = new CloudinaryStorage({
 const uploadResource = multer({ storage: resourceStorage });
 const uploadAvatar = multer({ storage: avatarStorage });
 
+// Storage for Event Banners
+const eventBannerStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'campusbridge/events',
+    resource_type: 'image',
+    allowed_formats: ['jpg', 'png', 'jpeg', 'webp'],
+    transformation: [{ width: 1200, height: 630, crop: 'limit', quality: 'auto' }],
+  },
+});
+
+const uploadEventBanner = multer({ storage: eventBannerStorage });
+
 module.exports = {
   cloudinary,
   uploadResource,
   uploadAvatar,
+  uploadEventBanner,
 };

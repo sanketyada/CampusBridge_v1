@@ -47,6 +47,14 @@ const eventSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  pendingUpdate: {
+    type: Object,
+    default: null
+  },
+  pendingDelete: {
+    type: Boolean,
+    default: false
+  },
   createdAt: {
     type: Date,
     default: Date.now

@@ -3,7 +3,7 @@ const { createEvent } = require('ics');
 
 exports.getAllEvents = async (req, res) => {
   try {
-    const events = await Event.find().sort({ date: 1 });
+    const events = await Event.find({ isVerified: true }).sort({ date: 1 });
     res.status(200).json({ status: 'success', results: events.length, data: { events } });
   } catch (err) {
     res.status(400).json({ status: 'fail', message: err.message });
@@ -96,7 +96,8 @@ exports.seedEvents = async (req, res) => {
         organizer: req.user?._id || "64b5e28a9b1e2c001c8e4a1a"
       }
     ];
-    await Event.insertMany(mockEvents);
+    const verifiedMockEvents = mockEvents.map(event => ({ ...event, isVerified: true }));
+    await Event.insertMany(verifiedMockEvents);
     res.status(201).json({ message: 'Events seeded successfully' });
   } catch (err) {
     res.status(400).json({ message: err.message });
@@ -109,17 +110,9 @@ exports.seedEvents = async (req, res) => {
  */
 exports.createNewEvent = async (req, res) => {
   try {
-    const { title, description, date, location, category, organizerLink, image, secretCode } = req.body;
+    const { title, description, date, location, category, organizerLink, image } = req.body;
 
-    // 1. Validate Secret Code
-    if (secretCode !== '12345678') {
-      return res.status(403).json({ 
-        status: 'fail', 
-        message: 'Invalid Secret Code. You are not authorized to organize events.' 
-      });
-    }
-
-    // 2. Role Check (Mentors only)
+    // 1. Role Check (Mentors only)
     if (req.user.role !== 'mentor' && req.user.role !== 'admin') {
       return res.status(403).json({ 
         status: 'fail', 
@@ -155,6 +148,131 @@ exports.createNewEvent = async (req, res) => {
       data: { event }
     });
 
+  } catch (err) {
+    res.status(400).json({ status: 'fail', message: err.message });
+  }
+};
+
+/**
+ * @desc    Mentor requests an update for an event
+ * @route   PUT /api/events/:id/request-update
+ */
+exports.requestEventUpdate = async (req, res) => {
+  try {
+    const { title, description, date, location, category, organizerLink, image } = req.body;
+    const event = await Event.findById(req.params.id);
+
+    if (!event) {
+      return res.status(404).json({ status: 'fail', message: 'Event not found' });
+    }
+
+    // Check if user is the organizer or admin
+    if (event.organizer.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return res.status(403).json({ status: 'fail', message: 'Not authorized to edit this event' });
+    }
+
+    // Store proposed changes in pendingUpdate
+    event.pendingUpdate = { title, description, date, location, category, organizerLink, image };
+    await event.save();
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Update request submitted for admin approval',
+      data: { event }
+    });
+  } catch (err) {
+    res.status(400).json({ status: 'fail', message: err.message });
+  }
+};
+
+/**
+ * @desc    Admin gets all events with pending updates
+ * @route   GET /api/events/pending-updates
+ */
+exports.getPendingUpdates = async (req, res) => {
+  try {
+    const events = await Event.find({ pendingUpdate: { $ne: null } }).populate('organizer', 'username email');
+    res.status(200).json({ status: 'success', results: events.length, data: { events } });
+  } catch (err) {
+    res.status(400).json({ status: 'fail', message: err.message });
+  }
+};
+
+/**
+ * @desc    Admin approves an event update
+ * @route   PATCH /api/events/:id/approve-update
+ */
+exports.approveEventUpdate = async (req, res) => {
+  try {
+    const event = await Event.findById(req.params.id);
+
+    if (!event || !event.pendingUpdate) {
+      return res.status(404).json({ status: 'fail', message: 'Pending update not found' });
+    }
+
+    // Apply pending changes
+    Object.assign(event, event.pendingUpdate);
+    event.pendingUpdate = null;
+    await event.save();
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Event update approved and applied',
+      data: { event }
+    });
+  } catch (err) {
+    res.status(400).json({ status: 'fail', message: err.message });
+  }
+};
+
+/**
+ * @desc    Admin rejects an event update
+ * @route   PATCH /api/events/:id/reject-update
+ */
+exports.rejectEventUpdate = async (req, res) => {
+  try {
+    const event = await Event.findById(req.params.id);
+
+    if (!event) {
+      return res.status(404).json({ status: 'fail', message: 'Event not found' });
+    }
+
+    event.pendingUpdate = null;
+    await event.save();
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Event update request rejected'
+    });
+  } catch (err) {
+    res.status(400).json({ status: 'fail', message: err.message });
+  }
+};
+
+/**
+ * @desc    Mentor requests deletion of their event (needs admin approval)
+ * @route   PUT /api/events/:id/request-delete
+ */
+exports.requestEventDelete = async (req, res) => {
+  try {
+    const event = await Event.findById(req.params.id);
+
+    if (!event) {
+      return res.status(404).json({ status: 'fail', message: 'Event not found' });
+    }
+
+    // Check if user is the organizer
+    if (event.organizer.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return res.status(403).json({ status: 'fail', message: 'Not authorized to delete this event' });
+    }
+
+    event.pendingDelete = true;
+    await event.save();
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Delete request submitted for admin approval'
+    });
   } catch (err) {
     res.status(400).json({ status: 'fail', message: err.message });
   }

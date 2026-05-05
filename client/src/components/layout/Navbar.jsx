@@ -61,12 +61,12 @@ const Navbar = () => {
         <div className="hidden lg:flex items-center gap-8">
 
           {/* Links */}
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-8">
             {navLinks.map((link) => (
               <Link
                 key={link.title}
                 to={link.path}
-                className={`relative text-sm font-medium transition-colors ${
+                className={`relative text-[15px] font-normal transition-colors ${
                   isActive(link.path)
                     ? 'text-blue-600'
                     : 'text-gray-500 hover:text-black'
@@ -87,7 +87,7 @@ const Navbar = () => {
           <div className="flex items-center gap-4 ml-6">
             {!user ? (
               <>
-                <Link to="/login" className="text-sm font-medium text-gray-600 hover:text-black">
+                <Link to="/login" className="text-[15px] font-normal text-gray-600 hover:text-black">
                   Login
                 </Link>
                 <Link
@@ -101,17 +101,19 @@ const Navbar = () => {
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setProfileOpen(!profileOpen)}
-                  className="flex items-center gap-2 p-1 pr-3 rounded-full border border-gray-200 hover:bg-gray-50 transition shadow-sm"
+                  className="flex items-center gap-3 p-1.5 pr-4 rounded-full border border-outline-variant hover:bg-surface-variant/20 transition shadow-sm bg-white"
                 >
-                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold overflow-hidden">
-                    {user.avatar ? (
+                  <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-black overflow-hidden border border-outline-variant">
+                    {user.avatar?.url ? (
+                      <img src={user.avatar.url} alt={user.name} className="w-full h-full object-cover" />
+                    ) : user.avatar ? (
                       <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
                     ) : (
                       user.name?.charAt(0) || <User size={18} />
                     )}
                   </div>
-                  <span className="text-sm font-medium text-gray-700">{user.name?.split(' ')[0]}</span>
-                  <ChevronDown size={14} className={`transition-transform duration-200 ${profileOpen ? 'rotate-180' : ''}`} />
+                  <span className="text-[15px] font-normal text-on-surface">{user.name?.split(' ')[0]}</span>
+                  <ChevronDown size={16} className={`text-on-surface-variant transition-transform duration-200 ${profileOpen ? 'rotate-180' : ''}`} />
                 </button>
 
                 <AnimatePresence>

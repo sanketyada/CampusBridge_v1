@@ -18,7 +18,9 @@ import {
   Clock,
   Info,
   ArrowUpRight,
-  Globe
+  Globe,
+  Trash2,
+  Upload
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
@@ -34,6 +36,9 @@ const EventSphere = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [isEditing, setIsEditing] = useState(null);
+  const [imageMode, setImageMode] = useState('link'); // 'link' or 'upload'
+  const [uploading, setUploading] = useState(false);
 
   const { user } = useAuth();
 
@@ -44,8 +49,7 @@ const EventSphere = () => {
     location: '',
     category: 'Workshop',
     organizerLink: '',
-    image: '',
-    secretCode: ''
+    image: ''
   });
 
   // External Devfolio Events Data
@@ -130,27 +134,72 @@ const EventSphere = () => {
     setError('');
 
     try {
-      await api.post('/events', formData);
-      setSuccess(true);
-      setTimeout(() => {
-        setShowCreateModal(false);
-        setSuccess(false);
-        setFormData({
-          title: '',
-          description: '',
-          date: '',
-          location: '',
-          category: 'Workshop',
-          organizerLink: '',
-          image: '',
-          secretCode: ''
-        });
-        fetchEvents();
-      }, 2000);
+      if (isEditing) {
+        await api.put(`/events/${isEditing}/request-update`, formData);
+        setSuccess(true);
+        setTimeout(() => {
+          setShowCreateModal(false);
+          setIsEditing(null);
+          setSelectedEvent(null);
+          setSuccess(false);
+          fetchEvents();
+        }, 2000);
+      } else {
+        await api.post('/events', formData);
+        setSuccess(true);
+        setTimeout(() => {
+          setShowCreateModal(false);
+          setSuccess(false);
+          setFormData({
+            title: '',
+            description: '',
+            date: '',
+            location: '',
+            category: 'Workshop',
+            organizerLink: '',
+            image: ''
+          });
+          fetchEvents();
+        }, 2000);
+      }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to create event. Please check your secret code.');
+      setError(err.response?.data?.message || 'Failed to submit request. Please check your secret code.');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleRequestDelete = async (eventId) => {
+    const confirmMessage = 'Are you sure you want to request deletion? This will need admin approval.';
+    if (window.confirm(confirmMessage)) {
+      try {
+        await api.put(`/events/${eventId}/request-delete`);
+        alert('Delete request submitted for admin approval.');
+        setSelectedEvent(null);
+        fetchEvents();
+      } catch (err) {
+        console.error('Error requesting delete:', err);
+        alert(err.response?.data?.message || 'Failed to request deletion.');
+      }
+    }
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const uploadData = new FormData();
+      uploadData.append('banner', file);
+      const res = await api.post('/events/upload-banner', uploadData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      setFormData({ ...formData, image: res.data.data.url });
+    } catch (err) {
+      console.error('Upload error:', err);
+      setError('Image upload failed. Please try again or use a URL instead.');
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -171,7 +220,19 @@ const EventSphere = () => {
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => setShowCreateModal(true)}
+                onClick={() => {
+                  setIsEditing(null);
+                  setFormData({
+                    title: '',
+                    description: '',
+                    date: '',
+                    location: '',
+                    category: 'Workshop',
+                    organizerLink: '',
+                    image: ''
+                  });
+                  setShowCreateModal(true);
+                }}
                 className="btn-primary flex items-center gap-2 px-6 py-3 shadow-lg shadow-primary/20"
               >
                 <Plus size={20} /> Organize Event
@@ -289,6 +350,11 @@ const EventSphere = () => {
                         Quick View <ChevronRight size={16} />
                       </div>
                     </div>
+                    {event.pendingUpdate && (
+                      <div className="absolute top-4 right-4 bg-amber-500 text-white px-2 py-1 rounded text-[10px] font-bold shadow-lg flex items-center gap-1">
+                        <Clock size={10} /> Pending Update
+                      </div>
+                    )}
                   </div>
                 </motion.div>
               ))}
@@ -459,6 +525,40 @@ const EventSphere = () => {
                   >
                     Register Now <ExternalLink size={20} />
                   </a>
+                  {user && (user._id === selectedEvent.organizer || user.id === selectedEvent.organizer) && !selectedEvent.pendingUpdate && !selectedEvent.pendingDelete && (
+                    <>
+                      <button
+                        onClick={() => {
+                          setFormData({
+                            title: selectedEvent.title,
+                            description: selectedEvent.description,
+                            date: new Date(selectedEvent.date).toISOString().slice(0, 16),
+                            location: selectedEvent.location,
+                            category: selectedEvent.category,
+                            organizerLink: selectedEvent.organizerLink,
+                            image: selectedEvent.image
+                          });
+                          setIsEditing(selectedEvent._id);
+                          setSelectedEvent(null);
+                          setShowCreateModal(true);
+                        }}
+                        className="py-4 px-5 bg-primary/10 text-primary border border-primary/20 rounded-2xl font-bold hover:bg-primary/20 transition-all flex items-center justify-center gap-2"
+                      >
+                        Edit <ImageIcon size={18} />
+                      </button>
+                      <button
+                        onClick={() => handleRequestDelete(selectedEvent._id)}
+                        className="py-4 px-5 bg-red-50 text-red-600 border border-red-200 rounded-2xl font-bold hover:bg-red-100 transition-all flex items-center justify-center gap-2"
+                      >
+                        Delete <Trash2 size={18} />
+                      </button>
+                    </>
+                  )}
+                  {selectedEvent.pendingDelete && (
+                    <div className="py-3 px-4 bg-red-50 text-red-600 border border-red-100 rounded-2xl text-xs font-bold flex items-center gap-2">
+                      <Clock size={14} /> Delete pending approval
+                    </div>
+                  )}
                   <button
                     onClick={() => setSelectedEvent(null)}
                     className="p-4 bg-surface border border-outline-variant rounded-2xl text-on-surface-variant hover:bg-gray-50 transition-all font-bold"
@@ -492,12 +592,15 @@ const EventSphere = () => {
               <div className="flex justify-between items-center mb-8">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                    <Plus size={24} />
+                    {isEditing ? <ImageIcon size={24} /> : <Plus size={24} />}
                   </div>
-                  <h2 className="text-2xl font-bold">Organize Community Event</h2>
+                  <h2 className="text-2xl font-bold">{isEditing ? 'Edit Event Details' : 'Organize Community Event'}</h2>
                 </div>
                 {!submitting && (
-                  <button onClick={() => setShowCreateModal(false)} className="p-2 hover:bg-surface rounded-full transition-colors">
+                  <button onClick={() => {
+                    setShowCreateModal(false);
+                    setIsEditing(null);
+                  }} className="p-2 hover:bg-surface rounded-full transition-colors">
                     <X size={20} />
                   </button>
                 )}
@@ -512,14 +615,21 @@ const EventSphere = () => {
                   >
                     <CheckCircle2 size={48} />
                   </motion.div>
-                  <h3 className="text-2xl font-bold text-on-surface mb-2">Event Created!</h3>
-                  <p className="text-on-surface-variant">Your event has been successfully listed in the discovery hub.</p>
+                  <h3 className="text-2xl font-bold text-on-surface mb-2">{isEditing ? 'Update Requested!' : 'Event Created!'}</h3>
+                  <p className="text-on-surface-variant">
+                    {isEditing ? 'Your changes have been submitted to admins for approval.' : 'Your event has been successfully listed in the discovery hub.'}
+                  </p>
                 </div>
               ) : (
                 <form onSubmit={handleCreateEvent} className="space-y-6">
                   {error && (
                     <div className="p-4 bg-red-50 border border-red-100 text-red-600 rounded-xl text-sm font-medium">
                       {error}
+                    </div>
+                  )}
+                  {isEditing && (
+                    <div className="p-4 bg-amber-50 border border-amber-100 text-amber-600 rounded-xl text-xs font-bold flex items-center gap-2">
+                      <Clock size={16} /> Note: Edits require admin approval before they appear live.
                     </div>
                   )}
 
@@ -608,41 +718,80 @@ const EventSphere = () => {
                         />
                       </div>
                     </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-bold opacity-60 uppercase tracking-widest ml-1">Banner Image URL (Optional)</label>
-                      <div className="relative">
-                        <ImageIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                        <input
-                          type="url"
-                          className="w-full pl-12 pr-5 py-3.5 bg-surface border border-outline-variant rounded-xl focus:border-primary outline-none transition-all font-bold"
-                          placeholder="Leave empty for category default"
-                          value={formData.image}
-                          onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                        />
+                    <div className="space-y-3">
+                      <label className="text-sm font-bold opacity-60 uppercase tracking-widest ml-1">Banner Image</label>
+                      <div className="flex gap-2 mb-3">
+                        <button
+                          type="button"
+                          onClick={() => setImageMode('link')}
+                          className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all flex items-center justify-center gap-1 ${
+                            imageMode === 'link' ? 'bg-primary text-white border-primary' : 'bg-surface border-outline-variant text-on-surface-variant hover:border-primary'
+                          }`}
+                        >
+                          <LinkIcon size={14} /> Paste URL
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setImageMode('upload')}
+                          className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all flex items-center justify-center gap-1 ${
+                            imageMode === 'upload' ? 'bg-primary text-white border-primary' : 'bg-surface border-outline-variant text-on-surface-variant hover:border-primary'
+                          }`}
+                        >
+                          <Upload size={14} /> Upload File
+                        </button>
                       </div>
+                      {imageMode === 'link' ? (
+                        <div className="relative">
+                          <ImageIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                          <input
+                            type="url"
+                            className="w-full pl-12 pr-5 py-3.5 bg-surface border border-outline-variant rounded-xl focus:border-primary outline-none transition-all font-bold"
+                            placeholder="https://image-url.com/banner.jpg"
+                            value={formData.image}
+                            onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+                          />
+                        </div>
+                      ) : (
+                        <div className="relative">
+                          <label className={`flex flex-col items-center justify-center w-full py-6 border-2 border-dashed rounded-xl cursor-pointer transition-all ${
+                            uploading ? 'border-primary bg-primary/5' : formData.image ? 'border-green-300 bg-green-50' : 'border-outline-variant hover:border-primary hover:bg-primary/5'
+                          }`}>
+                            {uploading ? (
+                              <div className="flex items-center gap-2 text-primary font-bold text-sm">
+                                <Loader2 className="animate-spin" size={20} />
+                                Uploading to Cloudinary...
+                              </div>
+                            ) : formData.image ? (
+                              <div className="text-center">
+                                <CheckCircle2 className="mx-auto text-green-500 mb-2" size={24} />
+                                <p className="text-xs text-green-600 font-bold">Image uploaded!</p>
+                                <p className="text-[10px] text-gray-400 mt-1 truncate max-w-[250px]">{formData.image}</p>
+                              </div>
+                            ) : (
+                              <div className="text-center">
+                                <Upload className="mx-auto text-gray-400 mb-2" size={24} />
+                                <p className="text-xs text-gray-500 font-bold">Click to upload banner</p>
+                                <p className="text-[10px] text-gray-400 mt-1">JPG, PNG, WEBP (max 5MB)</p>
+                              </div>
+                            )}
+                            <input
+                              type="file"
+                              accept="image/jpeg,image/png,image/webp"
+                              className="hidden"
+                              onChange={handleImageUpload}
+                              disabled={uploading}
+                            />
+                          </label>
+                        </div>
+                      )}
+                      {formData.image && (
+                        <div className="mt-3 rounded-xl overflow-hidden border border-outline-variant h-32">
+                          <img src={formData.image} alt="Preview" className="w-full h-full object-cover" />
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  {/* Secret Code Section */}
-                  <div className="p-6 bg-primary/5 rounded-2xl border border-primary/10">
-                    <div className="flex items-start gap-4">
-                      <div className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center flex-shrink-0">
-                        <ShieldCheck size={20} />
-                      </div>
-                      <div className="flex-grow">
-                        <label className="text-sm font-bold text-on-surface uppercase tracking-widest mb-1 block">Authentication Code</label>
-                        <p className="text-xs text-on-surface-variant mb-4">Enter the organization secret code provided by CampusBridge to verify this event.</p>
-                        <input
-                          required
-                          type="password"
-                          className="w-full px-5 py-3.5 bg-white border border-outline-variant rounded-xl focus:border-primary outline-none transition-all font-bold tracking-widest"
-                          placeholder="••••••••"
-                          value={formData.secretCode}
-                          onChange={(e) => setFormData({ ...formData, secretCode: e.target.value })}
-                        />
-                      </div>
-                    </div>
-                  </div>
 
                   <button
                     type="submit"
@@ -652,11 +801,11 @@ const EventSphere = () => {
                     {submitting ? (
                       <>
                         <Loader2 className="animate-spin" size={24} />
-                        Validating & Creating...
+                        {isEditing ? 'Submitting Request...' : 'Validating & Creating...'}
                       </>
                     ) : (
                       <>
-                        Publish Event <ChevronRight size={20} />
+                        {isEditing ? 'Request Update' : 'Publish Event'} <ChevronRight size={20} />
                       </>
                     )}
                   </button>

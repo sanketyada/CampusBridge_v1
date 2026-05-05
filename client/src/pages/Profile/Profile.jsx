@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import api from '../../services/api';
 import { 
   User, 
   Mail, 
@@ -13,16 +14,39 @@ import {
   Award,
   ChevronRight,
   ExternalLink,
-  FileText
+  FileText,
+  X,
+  Save,
+  Loader2,
+  Globe,
+  Plus
 } from 'lucide-react';
+import { FaGithub, FaLinkedin } from 'react-icons/fa';
 
 const Profile = () => {
-  const { user, loading } = useAuth();
+  const { user, loading, login } = useAuth(); // We'll use login to update the user context after edit
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  
+  const [formData, setFormData] = useState({
+    name: user?.name || '',
+    bio: user?.bio || '',
+    college: user?.college || '',
+    department: user?.department || '',
+    year: user?.year || '1st Year',
+    skills: user?.skills?.join(', ') || '',
+    socialLinks: {
+      github: user?.socialLinks?.github || '',
+      linkedIn: user?.socialLinks?.linkedIn || '',
+      portfolio: user?.socialLinks?.portfolio || ''
+    }
+  });
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <Loader2 className="animate-spin text-primary" size={40} />
       </div>
     );
   }
@@ -31,13 +55,62 @@ const Profile = () => {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
         <div className="text-center max-w-md">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Profile Not Found</h2>
-          <p className="text-gray-600 mb-6">Please login to view your profile details and activity.</p>
+          <h2 className="text-2xl font-bold text-on-surface mb-2">Profile Not Found</h2>
+          <p className="text-on-surface-variant mb-6">Please login to view your profile details and activity.</p>
           <a href="/login" className="btn-primary py-3 px-8">Sign In</a>
         </div>
       </div>
     );
   }
+
+  const handleUpdateProfile = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setError('');
+    try {
+      const skillsArray = formData.skills.split(',').map(s => s.trim()).filter(s => s !== '');
+      const res = await api.patch('/auth/update-profile', {
+        ...formData,
+        skills: skillsArray
+      });
+      
+      // Update local storage and context if needed
+      const storedUser = JSON.parse(localStorage.getItem('user'));
+      const updatedUser = { ...storedUser, ...res.data.data };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      
+      setShowEditModal(false);
+      window.location.reload(); // Quickest way to refresh all components with new data
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to update profile');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setSubmitting(true);
+    try {
+      const uploadData = new FormData();
+      uploadData.append('avatar', file);
+      const res = await api.post('/auth/upload-avatar', uploadData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      // Update local storage
+      const storedUser = JSON.parse(localStorage.getItem('user'));
+      const updatedUser = { ...storedUser, ...res.data.data };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      
+      window.location.reload();
+    } catch (err) {
+      setError('Avatar upload failed');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const joinDate = user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', {
     month: 'long',
@@ -45,25 +118,26 @@ const Profile = () => {
   }) : 'Recently Joined';
 
   return (
-    <div className="min-h-screen bg-gray-50/50 pt-24 pb-20">
-      <div className="max-w-5xl mx-auto px-6">
+    <div className="min-h-screen bg-surface pb-20">
+      <div className="container-custom pt-24">
         
         {/* Header Section */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden mb-8"
+          className="bg-white rounded-3xl shadow-card border border-outline-variant overflow-hidden mb-8"
         >
-          {/* Banner */}
-          <div className="h-40 bg-gradient-to-r from-blue-600 to-indigo-700 relative">
-            <button className="absolute bottom-4 right-6 bg-white/20 hover:bg-white/30 backdrop-blur-md text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
-              <Edit3 size={16} /> Edit Banner
-            </button>
+          <div className="h-64 relative overflow-hidden">
+            <img 
+              src="https://images.unsplash.com/photo-1492538368677-f6e0afe31dcc?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80" 
+              alt="College Campus" 
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
           </div>
 
-          {/* Profile Basic Info */}
-          <div className="px-10 pb-10 flex flex-col md:flex-row items-end gap-6 -mt-12">
-            <div className="w-32 h-32 rounded-3xl bg-white border-4 border-white shadow-xl overflow-hidden flex items-center justify-center text-blue-600 text-5xl font-bold">
+          <div className="px-10 pb-10 flex flex-col md:flex-row items-end gap-6 -mt-16 relative z-10">
+            <div className="w-32 h-32 rounded-3xl bg-white border-4 border-white shadow-xl overflow-hidden flex items-center justify-center text-primary text-5xl font-bold">
               {user.avatar?.url ? (
                 <img src={user.avatar.url} alt={user.name} className="w-full h-full object-cover" />
               ) : (
@@ -73,13 +147,19 @@ const Profile = () => {
             
             <div className="flex-grow pb-2">
               <div className="flex items-center gap-3 mb-1">
-                <h1 className="text-3xl font-bold text-gray-900">{user.name}</h1>
-                <BadgeCheck size={24} className="text-blue-500" />
+                <h1 className="text-3xl font-black text-on-surface">{user.name}</h1>
+                {user.role === 'mentor' && <BadgeCheck size={24} className="text-primary" />}
               </div>
-              <p className="text-gray-500 font-medium">{user.role.charAt(0).toUpperCase() + user.role.slice(1)} • CampusBridge Community</p>
+              <p className="text-on-surface-variant font-bold text-sm uppercase tracking-widest">
+                {user.role} • {user.department || 'Student'}
+              </p>
+              {user.bio && <p className="mt-3 text-sm text-on-surface-variant max-w-2xl leading-relaxed">{user.bio}</p>}
             </div>
 
-            <button className="btn-primary py-2.5 px-6 rounded-xl flex items-center gap-2 mb-2">
+            <button 
+              onClick={() => setShowEditModal(true)}
+              className="btn-primary py-3 px-6 rounded-2xl flex items-center gap-2 mb-2 shadow-xl shadow-primary/20"
+            >
               <Edit3 size={18} /> Edit Profile
             </button>
           </div>
@@ -87,155 +167,268 @@ const Profile = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
-          {/* Left Column: Details */}
-          <motion.div 
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.1 }}
-            className="lg:col-span-1 space-y-6"
-          >
-            <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
-              <h2 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
-                <User size={20} className="text-blue-600" /> Details
+          {/* Details & Skills */}
+          <div className="space-y-6">
+            <div className="card-premium p-8">
+              <h2 className="text-lg font-black text-on-surface mb-6 flex items-center gap-2 uppercase tracking-widest opacity-60">
+                <User size={20} className="text-primary" /> Profile Info
               </h2>
               
-              <div className="space-y-5">
+              <div className="space-y-6">
                 <div className="flex items-start gap-4">
-                  <div className="p-2 bg-gray-50 rounded-lg text-gray-400">
+                  <div className="p-2.5 bg-primary/5 rounded-xl text-primary">
                     <Mail size={18} />
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Email</p>
-                    <p className="text-sm font-medium text-gray-700">{user.email}</p>
+                    <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest mb-0.5">Email Address</p>
+                    <p className="text-sm font-bold text-on-surface">{user.email}</p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-4">
-                  <div className="p-2 bg-gray-50 rounded-lg text-gray-400">
+                  <div className="p-2.5 bg-primary/5 rounded-xl text-primary">
                     <School size={18} />
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">College</p>
-                    <p className="text-sm font-medium text-gray-700">{user.college || 'Not Specified'}</p>
+                    <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest mb-0.5">College / Institution</p>
+                    <p className="text-sm font-bold text-on-surface">{user.college || 'Not Specified'}</p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-4">
-                  <div className="p-2 bg-gray-50 rounded-lg text-gray-400">
-                    <Building size={18} />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Department</p>
-                    <p className="text-sm font-medium text-gray-700">{user.department || 'Not Specified'}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4">
-                  <div className="p-2 bg-gray-50 rounded-lg text-gray-400">
+                  <div className="p-2.5 bg-primary/5 rounded-xl text-primary">
                     <Calendar size={18} />
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Joined</p>
-                    <p className="text-sm font-medium text-gray-700">{joinDate}</p>
+                    <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest mb-0.5">Member Since</p>
+                    <p className="text-sm font-bold text-on-surface">{joinDate}</p>
                   </div>
                 </div>
               </div>
 
-              <div className="mt-8 pt-8 border-t border-gray-50">
-                <div className="flex items-center justify-between group cursor-pointer">
-                  <span className="text-sm font-bold text-gray-900">Portfolio</span>
-                  <ExternalLink size={16} className="text-gray-400 group-hover:text-blue-600 transition" />
-                </div>
+              {/* Social Links */}
+              <div className="mt-8 pt-8 border-t border-outline-variant grid grid-cols-3 gap-4">
+                <a href={user.socialLinks?.github || '#'} className={`p-3 rounded-2xl flex items-center justify-center transition-all ${user.socialLinks?.github ? 'bg-black text-white hover:scale-105' : 'bg-surface border border-outline-variant text-on-surface-variant opacity-40'}`}>
+                  <FaGithub size={20} />
+                </a>
+                <a href={user.socialLinks?.linkedIn || '#'} className={`p-3 rounded-2xl flex items-center justify-center transition-all ${user.socialLinks?.linkedIn ? 'bg-blue-600 text-white hover:scale-105' : 'bg-surface border border-outline-variant text-on-surface-variant opacity-40'}`}>
+                  <FaLinkedin size={20} />
+                </a>
+                <a href={user.socialLinks?.portfolio || '#'} className={`p-3 rounded-2xl flex items-center justify-center transition-all ${user.socialLinks?.portfolio ? 'bg-primary text-white hover:scale-105' : 'bg-surface border border-outline-variant text-on-surface-variant opacity-40'}`}>
+                  <Globe size={20} />
+                </a>
               </div>
             </div>
 
-            {/* Skills/Tags Placeholder */}
-            <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
-              <h3 className="text-sm font-bold text-gray-900 mb-4">Top Skills</h3>
+            <div className="card-premium p-8">
+              <h3 className="text-xs font-black text-on-surface-variant mb-6 uppercase tracking-widest">Expertise & Skills</h3>
               <div className="flex flex-wrap gap-2">
-                {['React', 'Node.js', 'System Design', 'UI/UX'].map(skill => (
-                  <span key={skill} className="px-3 py-1.5 bg-blue-50 text-blue-600 text-xs font-bold rounded-lg">
+                {user.skills?.length > 0 ? user.skills.map(skill => (
+                  <span key={skill} className="px-4 py-2 bg-primary/5 text-primary text-xs font-black rounded-xl border border-primary/10">
                     {skill}
                   </span>
-                ))}
+                )) : (
+                  <p className="text-xs text-on-surface-variant italic">No skills added yet.</p>
+                )}
               </div>
             </div>
-          </motion.div>
+          </div>
 
-          {/* Right Column: Activity / Activity Feed */}
-          <motion.div 
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
-            className="lg:col-span-2 space-y-6"
-          >
-            {/* Stats */}
+          {/* Activity Placeholder */}
+          <div className="lg:col-span-2 space-y-6">
             <div className="grid grid-cols-3 gap-6">
-              <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 text-center">
-                <p className="text-2xl font-bold text-gray-900 mb-1">12</p>
-                <p className="text-xs font-bold text-gray-400 uppercase">Resources</p>
+              <div className="card-premium p-6 text-center">
+                <p className="text-2xl font-black text-primary mb-1">{user.savedEvents?.length || 0}</p>
+                <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-tighter">Events</p>
               </div>
-              <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 text-center">
-                <p className="text-2xl font-bold text-gray-900 mb-1">45</p>
-                <p className="text-xs font-bold text-gray-400 uppercase">AI Chats</p>
+              <div className="card-premium p-6 text-center">
+                <p className="text-2xl font-black text-primary mb-1">0</p>
+                <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-tighter">Resources</p>
               </div>
-              <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 text-center">
-                <p className="text-2xl font-bold text-gray-900 mb-1">8</p>
-                <p className="text-xs font-bold text-gray-400 uppercase">Saved Events</p>
+              <div className="card-premium p-6 text-center">
+                <p className="text-2xl font-black text-primary mb-1">0</p>
+                <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-tighter">Courses</p>
               </div>
             </div>
 
-            {/* Recent Activity Placeholder */}
-            <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
+            <div className="card-premium p-8">
               <div className="flex items-center justify-between mb-8">
-                <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                  <BookOpen size={20} className="text-blue-600" /> Recent Activity
+                <h2 className="text-lg font-black text-on-surface flex items-center gap-2 uppercase tracking-widest opacity-60">
+                  <BookOpen size={20} className="text-primary" /> Learning Progress
                 </h2>
-                <button className="text-sm font-bold text-blue-600 hover:underline">View All</button>
               </div>
-
-              <div className="space-y-6">
-                {[
-                  { title: "Advanced React Context Patterns", type: "PDF", date: "2 days ago" },
-                  { title: "MERN Stack Roadmap 2024", type: "Article", date: "1 week ago" }
-                ].map((act, i) => (
-                  <div key={i} className="flex items-center gap-4 group cursor-pointer">
-                    <div className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition">
-                      <FileText size={20} />
-                    </div>
-                    <div className="flex-grow">
-                      <p className="text-sm font-bold text-gray-900 group-hover:text-blue-600 transition">{act.title}</p>
-                      <p className="text-xs text-gray-500">{act.type} • Published {act.date}</p>
-                    </div>
-                    <ChevronRight size={18} className="text-gray-300" />
-                  </div>
-                ))}
+              <div className="py-12 text-center">
+                <BookOpen className="mx-auto text-on-surface-variant/20 mb-4" size={48} />
+                <p className="text-sm font-bold text-on-surface-variant">No recent activity found.</p>
+                <p className="text-xs text-on-surface-variant mt-1 opacity-60">Start exploring events and roadmaps to build your profile.</p>
               </div>
             </div>
-
-            {/* Achievements Placeholder */}
-            <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
-              <h2 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
-                <Award size={20} className="text-blue-600" /> Professional Badges
-              </h2>
-              <div className="flex items-center gap-6">
-                <div className="text-center opacity-40">
-                  <div className="w-16 h-16 bg-gray-100 rounded-full mx-auto mb-2 flex items-center justify-center">
-                    <Award size={24} />
-                  </div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider">Top Contributor</p>
-                </div>
-                <div className="text-center opacity-40">
-                  <div className="w-16 h-16 bg-gray-100 rounded-full mx-auto mb-2 flex items-center justify-center">
-                    <BadgeCheck size={24} />
-                  </div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider">AI Explorer</p>
-                </div>
-              </div>
-            </div>
-          </motion.div>
+          </div>
         </div>
       </div>
+
+      {/* Edit Profile Modal */}
+      <AnimatePresence>
+        {showEditModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowEditModal(false)}
+              className="fixed inset-0 bg-on-surface/30 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-2xl bg-surface rounded-[2rem] shadow-2xl overflow-hidden my-auto"
+            >
+              <div className="p-8 border-b border-outline-variant flex justify-between items-center">
+                <h2 className="text-2xl font-black text-on-surface uppercase tracking-tight">Edit Profile</h2>
+                <button onClick={() => setShowEditModal(false)} className="p-2 hover:bg-surface-variant rounded-full transition-colors"><X size={24} /></button>
+              </div>
+
+              <form onSubmit={handleUpdateProfile} className="p-8 space-y-6">
+                {error && <div className="p-4 bg-red-50 text-red-600 rounded-xl text-sm font-bold border border-red-100">{error}</div>}
+                
+                {/* Avatar Upload Section */}
+                <div className="flex flex-col items-center justify-center pb-6 border-b border-outline-variant">
+                  <div className="relative group">
+                    <div className="w-24 h-24 rounded-3xl bg-primary/10 flex items-center justify-center text-primary text-3xl font-bold overflow-hidden border-4 border-surface shadow-lg">
+                      {user.avatar?.url ? (
+                        <img src={user.avatar.url} alt={user.name} className="w-full h-full object-cover" />
+                      ) : (
+                        user.name.charAt(0)
+                      )}
+                    </div>
+                    <label className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-3xl">
+                      <Plus className="text-white" size={32} />
+                      <input type="file" className="hidden" accept="image/*" onChange={handleAvatarUpload} disabled={submitting} />
+                    </label>
+                  </div>
+                  <p className="mt-2 text-[10px] font-black text-on-surface-variant uppercase tracking-widest">Change Profile Picture</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-on-surface-variant uppercase tracking-widest ml-1">Full Name</label>
+                    <input 
+                      type="text"
+                      className="w-full px-5 py-3.5 bg-surface border border-outline-variant rounded-xl focus:border-primary outline-none transition-all font-bold"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-on-surface-variant uppercase tracking-widest ml-1">College</label>
+                    <input 
+                      type="text"
+                      className="w-full px-5 py-3.5 bg-surface border border-outline-variant rounded-xl focus:border-primary outline-none transition-all font-bold"
+                      value={formData.college}
+                      onChange={(e) => setFormData({ ...formData, college: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-on-surface-variant uppercase tracking-widest ml-1">Department</label>
+                    <input 
+                      type="text"
+                      className="w-full px-5 py-3.5 bg-surface border border-outline-variant rounded-xl focus:border-primary outline-none transition-all font-bold"
+                      value={formData.department}
+                      onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-on-surface-variant uppercase tracking-widest ml-1">Year</label>
+                    <select 
+                      className="w-full px-5 py-3.5 bg-surface border border-outline-variant rounded-xl focus:border-primary outline-none transition-all font-bold"
+                      value={formData.year}
+                      onChange={(e) => setFormData({ ...formData, year: e.target.value })}
+                    >
+                      <option>1st Year</option>
+                      <option>2nd Year</option>
+                      <option>3rd Year</option>
+                      <option>4th Year</option>
+                      <option>Graduate</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-on-surface-variant uppercase tracking-widest ml-1">Bio</label>
+                  <textarea 
+                    rows="3"
+                    className="w-full px-5 py-3.5 bg-surface border border-outline-variant rounded-xl focus:border-primary outline-none transition-all font-bold resize-none"
+                    placeholder="Tell us about yourself..."
+                    value={formData.bio}
+                    onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-on-surface-variant uppercase tracking-widest ml-1">Skills (comma separated)</label>
+                  <input 
+                    type="text"
+                    className="w-full px-5 py-3.5 bg-surface border border-outline-variant rounded-xl focus:border-primary outline-none transition-all font-bold"
+                    placeholder="React, Node.js, Python..."
+                    value={formData.skills}
+                    onChange={(e) => setFormData({ ...formData, skills: e.target.value })}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-on-surface-variant uppercase tracking-widest ml-1">GitHub</label>
+                    <input 
+                      type="url"
+                      className="w-full px-5 py-3.5 bg-surface border border-outline-variant rounded-xl focus:border-primary outline-none transition-all font-bold"
+                      value={formData.socialLinks.github}
+                      onChange={(e) => setFormData({ ...formData, socialLinks: { ...formData.socialLinks, github: e.target.value } })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-on-surface-variant uppercase tracking-widest ml-1">LinkedIn</label>
+                    <input 
+                      type="url"
+                      className="w-full px-5 py-3.5 bg-surface border border-outline-variant rounded-xl focus:border-primary outline-none transition-all font-bold"
+                      value={formData.socialLinks.linkedIn}
+                      onChange={(e) => setFormData({ ...formData, socialLinks: { ...formData.socialLinks, linkedIn: e.target.value } })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-on-surface-variant uppercase tracking-widest ml-1">Portfolio</label>
+                    <input 
+                      type="url"
+                      className="w-full px-5 py-3.5 bg-surface border border-outline-variant rounded-xl focus:border-primary outline-none transition-all font-bold"
+                      value={formData.socialLinks.portfolio}
+                      onChange={(e) => setFormData({ ...formData, socialLinks: { ...formData.socialLinks, portfolio: e.target.value } })}
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-6 flex gap-4">
+                  <button 
+                    type="button"
+                    onClick={() => setShowEditModal(false)}
+                    className="flex-1 py-4 px-6 bg-surface border border-outline-variant rounded-2xl font-black uppercase tracking-widest hover:bg-surface-variant transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit"
+                    disabled={submitting}
+                    className="flex-1 py-4 px-6 btn-primary rounded-2xl font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-xl shadow-primary/20"
+                  >
+                    {submitting ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
+                    Save Changes
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

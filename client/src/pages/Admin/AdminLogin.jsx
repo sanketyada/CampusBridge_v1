@@ -1,21 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, Loader2, ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Mail, Lock, Loader2, ArrowRight, ShieldAlert } from 'lucide-react';
 import api from '../../services/api';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 
-const Login = () => {
+const AdminLogin = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login, user } = useAuth();
   const navigate = useNavigate();
 
-  // If already logged in, redirect to home
+  // If already logged in as admin, redirect to dashboard
   useEffect(() => {
-    if (user) {
-      navigate('/');
+    if (user && user.role === 'admin') {
+      navigate('/admin/dashboard');
     }
   }, [user, navigate]);
 
@@ -28,11 +28,19 @@ const Login = () => {
     setError('');
     setLoading(true);
     try {
+      // Use the standard login endpoint
       const res = await api.post('/auth/login', formData);
       const { token } = res.data;
-      const { user } = res.data.data;
-      login(user, token);
-      navigate('/'); 
+      const { user: loggedInUser } = res.data.data;
+      
+      if (loggedInUser.role !== 'admin') {
+        setError('Access denied. Admin privileges required.');
+        setLoading(false);
+        return;
+      }
+
+      login(loggedInUser, token);
+      navigate('/admin/dashboard'); 
     } catch (err) {
       setError(err.response?.data?.message || 'Invalid email or password. Please try again.');
     } finally {
@@ -48,8 +56,11 @@ const Login = () => {
         className="w-full max-w-[440px] bg-white p-10 rounded-xl shadow-ambient border border-outline-variant"
       >
         <div className="text-center mb-10">
-          <h1 className="text-3xl font-bold text-on-surface mb-2">Welcome Back</h1>
-          <p className="text-on-surface-variant">Continue your career journey with CampusBridge</p>
+          <div className="flex justify-center mb-4">
+            <ShieldAlert size={48} className="text-primary" />
+          </div>
+          <h1 className="text-3xl font-bold text-on-surface mb-2">Admin Portal</h1>
+          <p className="text-on-surface-variant">Authorized personnel only</p>
         </div>
 
         {error && (
@@ -64,7 +75,7 @@ const Login = () => {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
-            <label className="text-sm font-bold text-on-surface">Email Address</label>
+            <label className="text-sm font-bold text-on-surface">Admin Email</label>
             <div className="relative group">
               <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400 group-focus-within:text-primary transition-colors">
                 <Mail size={18} />
@@ -74,7 +85,7 @@ const Login = () => {
                 name="email"
                 required
                 className="w-full pl-11 pr-4 py-3 bg-surface border border-outline-variant rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-medium"
-                placeholder="name@college.edu"
+                placeholder="admin@campusbridge.com"
                 value={formData.email}
                 onChange={handleChange}
               />
@@ -84,7 +95,6 @@ const Login = () => {
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <label className="text-sm font-bold text-on-surface">Password</label>
-              <Link to="#" className="text-xs font-bold text-primary hover:underline">Forgot password?</Link>
             </div>
             <div className="relative group">
               <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400 group-focus-within:text-primary transition-colors">
@@ -105,7 +115,7 @@ const Login = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full btn-primary py-3.5 text-base flex items-center justify-center gap-2"
+            className="w-full btn-primary py-3.5 text-base flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark"
           >
             {loading ? (
               <>
@@ -114,23 +124,14 @@ const Login = () => {
               </>
             ) : (
               <>
-                Sign In <ArrowRight size={18} />
+                Access Admin Panel <ArrowRight size={18} />
               </>
             )}
           </button>
         </form>
-
-        <div className="mt-10 pt-8 border-t border-outline-variant text-center">
-          <p className="text-on-surface-variant text-sm font-medium">
-            New to CampusBridge?{' '}
-            <Link to="/register" className="text-primary font-bold hover:underline ml-1">
-              Create an account
-            </Link>
-          </p>
-        </div>
       </motion.div>
     </div>
   );
 };
 
-export default Login;
+export default AdminLogin;

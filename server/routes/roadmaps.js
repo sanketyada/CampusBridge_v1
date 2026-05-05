@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
+const roadmapController = require('../controllers/roadmapController');
 
-// Mock data for roadmaps since they are static for now
+// Existing mock roadmaps
 const roadmaps = [
   {
     _id: '1',
@@ -30,5 +31,7 @@ router.get('/', (req, res) => {
   res.json(roadmaps);
 });
 
-module.exports = router;
+// AI Generation Route
+router.post('/generate', roadmapController.generateRoadmap);
 
+module.exports = router;
